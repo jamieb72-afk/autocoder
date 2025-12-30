@@ -8,6 +8,7 @@ import type { WSMessage, AgentStatus } from '../lib/types'
 interface WebSocketState {
   progress: {
     passing: number
+    in_progress: number
     total: number
     percentage: number
   }
@@ -20,7 +21,7 @@ const MAX_LOGS = 100 // Keep last 100 log lines
 
 export function useProjectWebSocket(projectName: string | null) {
   const [state, setState] = useState<WebSocketState>({
-    progress: { passing: 0, total: 0, percentage: 0 },
+    progress: { passing: 0, in_progress: 0, total: 0, percentage: 0 },
     agentStatus: 'stopped',
     logs: [],
     isConnected: false,
@@ -57,6 +58,7 @@ export function useProjectWebSocket(projectName: string | null) {
                 ...prev,
                 progress: {
                   passing: message.passing,
+                  in_progress: message.in_progress,
                   total: message.total,
                   percentage: message.percentage,
                 },

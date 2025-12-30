@@ -5,6 +5,7 @@
 // Project types
 export interface ProjectStats {
   passing: number
+  in_progress: number
   total: number
   percentage: number
 }
@@ -34,6 +35,7 @@ export interface Feature {
   description: string
   steps: string[]
   passes: boolean
+  in_progress: boolean
 }
 
 export interface FeatureListResponse {
@@ -79,6 +81,7 @@ export type WSMessageType = 'progress' | 'feature_update' | 'log' | 'agent_statu
 export interface WSProgressMessage {
   type: 'progress'
   passing: number
+  in_progress: number
   total: number
   percentage: number
 }

@@ -93,6 +93,7 @@ def feature_to_response(f) -> FeatureResponse:
         description=f.description,
         steps=f.steps if isinstance(f.steps, list) else [],
         passes=f.passes,
+        in_progress=f.in_progress,
     )
 
 
@@ -123,18 +124,21 @@ async def list_features(project_name: str):
             all_features = session.query(Feature).order_by(Feature.priority).all()
 
             pending = []
+            in_progress = []
             done = []
 
             for f in all_features:
                 feature_response = feature_to_response(f)
                 if f.passes:
                     done.append(feature_response)
+                elif f.in_progress:
+                    in_progress.append(feature_response)
                 else:
                     pending.append(feature_response)
 
             return FeatureListResponse(
                 pending=pending,
-                in_progress=[],
+                in_progress=in_progress,
                 done=done,
             )
     except HTTPException:

@@ -22,6 +22,7 @@ FEATURE_MCP_TOOLS = [
     "mcp__features__feature_get_stats",
     "mcp__features__feature_get_next",
     "mcp__features__feature_get_for_regression",
+    "mcp__features__feature_mark_in_progress",
     "mcp__features__feature_mark_passing",
     "mcp__features__feature_skip",
     "mcp__features__feature_create_bulk",

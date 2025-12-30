@@ -117,21 +117,24 @@ async def poll_progress(websocket: WebSocket, project_name: str):
     project_dir = _get_generations_dir() / project_name
     count_passing_tests = _get_count_passing_tests()
     last_passing = -1
+    last_in_progress = -1
     last_total = -1
 
     while True:
         try:
-            passing, total = count_passing_tests(project_dir)
+            passing, in_progress, total = count_passing_tests(project_dir)
 
             # Only send if changed
-            if passing != last_passing or total != last_total:
+            if passing != last_passing or in_progress != last_in_progress or total != last_total:
                 last_passing = passing
+                last_in_progress = in_progress
                 last_total = total
                 percentage = (passing / total * 100) if total > 0 else 0
 
                 await websocket.send_json({
                     "type": "progress",
                     "passing": passing,
+                    "in_progress": in_progress,
                     "total": total,
                     "percentage": round(percentage, 1),
                 })
@@ -204,11 +207,12 @@ async def project_websocket(websocket: WebSocket, project_name: str):
 
         # Send initial progress
         count_passing_tests = _get_count_passing_tests()
-        passing, total = count_passing_tests(project_dir)
+        passing, in_progress, total = count_passing_tests(project_dir)
         percentage = (passing / total * 100) if total > 0 else 0
         await websocket.send_json({
             "type": "progress",
             "passing": passing,
+            "in_progress": in_progress,
             "total": total,
             "percentage": round(percentage, 1),
         })

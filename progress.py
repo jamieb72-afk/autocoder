@@ -56,19 +56,19 @@ def has_features(project_dir: Path) -> bool:
         return False
 
 
-def count_passing_tests(project_dir: Path) -> tuple[int, int]:
+def count_passing_tests(project_dir: Path) -> tuple[int, int, int]:
     """
-    Count passing and total tests via direct database access.
+    Count passing, in_progress, and total tests via direct database access.
 
     Args:
         project_dir: Directory containing the project
 
     Returns:
-        (passing_count, total_count)
+        (passing_count, in_progress_count, total_count)
     """
     db_file = project_dir / "features.db"
     if not db_file.exists():
-        return 0, 0
+        return 0, 0, 0
 
     try:
         conn = sqlite3.connect(db_file)
@@ -77,11 +77,17 @@ def count_passing_tests(project_dir: Path) -> tuple[int, int]:
         total = cursor.fetchone()[0]
         cursor.execute("SELECT COUNT(*) FROM features WHERE passes = 1")
         passing = cursor.fetchone()[0]
+        # Handle case where in_progress column doesn't exist yet
+        try:
+            cursor.execute("SELECT COUNT(*) FROM features WHERE in_progress = 1")
+            in_progress = cursor.fetchone()[0]
+        except sqlite3.OperationalError:
+            in_progress = 0
         conn.close()
-        return passing, total
+        return passing, in_progress, total
     except Exception as e:
         print(f"[Database error in count_passing_tests: {e}]")
-        return 0, 0
+        return 0, 0, 0
 
 
 def get_all_passing_features(project_dir: Path) -> list[dict]:
@@ -205,11 +211,14 @@ def print_session_header(session_num: int, is_initializer: bool) -> None:
 
 def print_progress_summary(project_dir: Path) -> None:
     """Print a summary of current progress."""
-    passing, total = count_passing_tests(project_dir)
+    passing, in_progress, total = count_passing_tests(project_dir)
 
     if total > 0:
         percentage = (passing / total) * 100
-        print(f"\nProgress: {passing}/{total} tests passing ({percentage:.1f}%)")
+        status_parts = [f"{passing}/{total} tests passing ({percentage:.1f}%)"]
+        if in_progress > 0:
+            status_parts.append(f"{in_progress} in progress")
+        print(f"\nProgress: {', '.join(status_parts)}")
         send_progress_webhook(passing, total, project_dir)
     else:
         print("\nProgress: No features in database yet")

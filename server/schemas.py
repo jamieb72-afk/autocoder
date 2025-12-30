@@ -78,6 +78,7 @@ class FeatureResponse(FeatureBase):
     id: int
     priority: int
     passes: bool
+    in_progress: bool
 
     class Config:
         from_attributes = True

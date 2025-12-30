@@ -12,6 +12,8 @@ Tools:
 - feature_get_for_regression: Get random passing features for testing
 - feature_mark_passing: Mark a feature as passing
 - feature_skip: Skip a feature (move to end of queue)
+- feature_mark_in_progress: Mark a feature as in-progress
+- feature_clear_in_progress: Clear in-progress status
 - feature_create_bulk: Create multiple features at once
 """
 
@@ -45,6 +47,16 @@ class MarkPassingInput(BaseModel):
 class SkipFeatureInput(BaseModel):
     """Input for skipping a feature."""
     feature_id: int = Field(..., description="The ID of the feature to skip", ge=1)
+
+
+class MarkInProgressInput(BaseModel):
+    """Input for marking a feature as in-progress."""
+    feature_id: int = Field(..., description="The ID of the feature to mark as in-progress", ge=1)
+
+
+class ClearInProgressInput(BaseModel):
+    """Input for clearing in-progress status."""
+    feature_id: int = Field(..., description="The ID of the feature to clear in-progress status", ge=1)
 
 
 class RegressionInput(BaseModel):
@@ -106,20 +118,22 @@ def get_session():
 def feature_get_stats() -> str:
     """Get statistics about feature completion progress.
 
-    Returns the number of passing features, total features, and completion percentage.
-    Use this to track overall progress of the implementation.
+    Returns the number of passing features, in-progress features, total features,
+    and completion percentage. Use this to track overall progress of the implementation.
 
     Returns:
-        JSON with: passing (int), total (int), percentage (float)
+        JSON with: passing (int), in_progress (int), total (int), percentage (float)
     """
     session = get_session()
     try:
         total = session.query(Feature).count()
         passing = session.query(Feature).filter(Feature.passes == True).count()
+        in_progress = session.query(Feature).filter(Feature.in_progress == True).count()
         percentage = round((passing / total) * 100, 1) if total > 0 else 0.0
 
         return json.dumps({
             "passing": passing,
+            "in_progress": in_progress,
             "total": total,
             "percentage": percentage
         }, indent=2)
@@ -131,24 +145,26 @@ def feature_get_stats() -> str:
 def feature_get_next() -> str:
     """Get the highest-priority pending feature to work on.
 
-    Returns the feature with the lowest priority number that has passes=false.
+    Returns the feature with the lowest priority number that has passes=false
+    and is not currently in-progress by another session.
     Use this at the start of each coding session to determine what to implement next.
 
     Returns:
-        JSON with feature details (id, priority, category, name, description, steps, passes)
-        or error message if all features are passing.
+        JSON with feature details (id, priority, category, name, description, steps, passes, in_progress)
+        or error message if all features are passing or in-progress.
     """
     session = get_session()
     try:
         feature = (
             session.query(Feature)
             .filter(Feature.passes == False)
+            .filter(Feature.in_progress == False)
             .order_by(Feature.priority.asc(), Feature.id.asc())
             .first()
         )
 
         if feature is None:
-            return json.dumps({"error": "All features are passing! No more work to do."})
+            return json.dumps({"error": "All features are passing or in-progress! No more work to do."})
 
         return json.dumps(feature.to_dict(), indent=2)
     finally:
@@ -195,8 +211,8 @@ def feature_mark_passing(
 ) -> str:
     """Mark a feature as passing after successful implementation.
 
-    Updates the feature's passes field to true. Use this after you have
-    implemented the feature and verified it works correctly.
+    Updates the feature's passes field to true and clears the in_progress flag.
+    Use this after you have implemented the feature and verified it works correctly.
 
     Args:
         feature_id: The ID of the feature to mark as passing
@@ -212,6 +228,7 @@ def feature_mark_passing(
             return json.dumps({"error": f"Feature with ID {feature_id} not found"})
 
         feature.passes = True
+        feature.in_progress = False
         session.commit()
         session.refresh(feature)
 
@@ -232,7 +249,8 @@ def feature_skip(
     - Technical prerequisites that need to be addressed first
 
     The feature's priority is set to max_priority + 1, so it will be
-    worked on after all other pending features.
+    worked on after all other pending features. Also clears the in_progress
+    flag so the feature returns to "pending" status.
 
     Args:
         feature_id: The ID of the feature to skip
@@ -257,6 +275,7 @@ def feature_skip(
         new_priority = (max_priority_result[0] + 1) if max_priority_result else 1
 
         feature.priority = new_priority
+        feature.in_progress = False
         session.commit()
         session.refresh(feature)
 
@@ -267,6 +286,74 @@ def feature_skip(
             "new_priority": new_priority,
             "message": f"Feature '{feature.name}' moved to end of queue"
         }, indent=2)
+    finally:
+        session.close()
+
+
+@mcp.tool()
+def feature_mark_in_progress(
+    feature_id: Annotated[int, Field(description="The ID of the feature to mark as in-progress", ge=1)]
+) -> str:
+    """Mark a feature as in-progress. Call immediately after feature_get_next().
+
+    This prevents other agent sessions from working on the same feature.
+    Use this as soon as you retrieve a feature to work on.
+
+    Args:
+        feature_id: The ID of the feature to mark as in-progress
+
+    Returns:
+        JSON with the updated feature details, or error if not found or already in-progress.
+    """
+    session = get_session()
+    try:
+        feature = session.query(Feature).filter(Feature.id == feature_id).first()
+
+        if feature is None:
+            return json.dumps({"error": f"Feature with ID {feature_id} not found"})
+
+        if feature.passes:
+            return json.dumps({"error": f"Feature with ID {feature_id} is already passing"})
+
+        if feature.in_progress:
+            return json.dumps({"error": f"Feature with ID {feature_id} is already in-progress"})
+
+        feature.in_progress = True
+        session.commit()
+        session.refresh(feature)
+
+        return json.dumps(feature.to_dict(), indent=2)
+    finally:
+        session.close()
+
+
+@mcp.tool()
+def feature_clear_in_progress(
+    feature_id: Annotated[int, Field(description="The ID of the feature to clear in-progress status", ge=1)]
+) -> str:
+    """Clear in-progress status from a feature.
+
+    Use this when abandoning a feature or manually unsticking a stuck feature.
+    The feature will return to the pending queue.
+
+    Args:
+        feature_id: The ID of the feature to clear in-progress status
+
+    Returns:
+        JSON with the updated feature details, or error if not found.
+    """
+    session = get_session()
+    try:
+        feature = session.query(Feature).filter(Feature.id == feature_id).first()
+
+        if feature is None:
+            return json.dumps({"error": f"Feature with ID {feature_id} not found"})
+
+        feature.in_progress = False
+        session.commit()
+        session.refresh(feature)
+
+        return json.dumps(feature.to_dict(), indent=2)
     finally:
         session.close()
 

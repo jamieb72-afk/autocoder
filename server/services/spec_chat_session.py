@@ -83,8 +83,12 @@ class SpecChatSession:
         except UnicodeDecodeError:
             skill_content = skill_path.read_text(encoding="utf-8", errors="replace")
 
-        # Replace $ARGUMENTS with the project path (use forward slashes for consistency)
-        project_path = f"generations/{self.project_name}"
+        # Ensure project directory exists (like CLI does in start.py)
+        self.project_dir.mkdir(parents=True, exist_ok=True)
+
+        # Replace $ARGUMENTS with absolute project path (like CLI does in start.py:184)
+        # Using absolute path avoids confusion when project folder name differs from app name
+        project_path = str(self.project_dir.resolve())
         system_prompt = skill_content.replace("$ARGUMENTS", project_path)
 
         # Create Claude SDK client with limited tools for spec creation

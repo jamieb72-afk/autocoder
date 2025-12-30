@@ -88,6 +88,13 @@ Get the next feature to implement:
 Use the feature_get_next tool
 ```
 
+Once you've retrieved the feature, **immediately mark it as in-progress**:
+
+```
+# Mark feature as in-progress to prevent other sessions from working on it
+Use the feature_mark_in_progress tool with feature_id=42
+```
+
 Focus on completing one feature perfectly and completing its testing steps in this session before moving on to other features.
 It's ok if you only complete one feature in this session, as there will be more sessions later that continue to make progress.
 
@@ -335,20 +342,26 @@ The feature tools exist to reduce token usage. **DO NOT make exploratory queries
 ### ALLOWED Feature Tools (ONLY these):
 
 ```
-# 1. Get progress stats (passing/total counts)
+# 1. Get progress stats (passing/in_progress/total counts)
 feature_get_stats
 
 # 2. Get the NEXT feature to work on (one feature only)
 feature_get_next
 
-# 3. Get up to 3 random passing features for regression testing
+# 3. Mark a feature as in-progress (call immediately after feature_get_next)
+feature_mark_in_progress with feature_id={id}
+
+# 4. Get up to 3 random passing features for regression testing
 feature_get_for_regression
 
-# 4. Mark a feature as passing (after verification)
+# 5. Mark a feature as passing (after verification)
 feature_mark_passing with feature_id={id}
 
-# 5. Skip a feature (moves to end of queue) - ONLY when blocked by dependency
+# 6. Skip a feature (moves to end of queue) - ONLY when blocked by dependency
 feature_skip with feature_id={id}
+
+# 7. Clear in-progress status (when abandoning a feature)
+feature_clear_in_progress with feature_id={id}
 ```
 
 ### RULES:

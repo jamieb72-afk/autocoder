@@ -28,6 +28,7 @@ class Feature(Base):
     description = Column(Text, nullable=False)
     steps = Column(JSON, nullable=False)  # Stored as JSON array
     passes = Column(Boolean, default=False, index=True)
+    in_progress = Column(Boolean, default=False, index=True)
 
     def to_dict(self) -> dict:
         """Convert feature to dictionary for JSON serialization."""
@@ -39,6 +40,7 @@ class Feature(Base):
             "description": self.description,
             "steps": self.steps,
             "passes": self.passes,
+            "in_progress": self.in_progress,
         }
 
 
@@ -56,6 +58,21 @@ def get_database_url(project_dir: Path) -> str:
     return f"sqlite:///{db_path.as_posix()}"
 
 
+def _migrate_add_in_progress_column(engine) -> None:
+    """Add in_progress column to existing databases that don't have it."""
+    from sqlalchemy import text
+
+    with engine.connect() as conn:
+        # Check if column exists
+        result = conn.execute(text("PRAGMA table_info(features)"))
+        columns = [row[1] for row in result.fetchall()]
+
+        if "in_progress" not in columns:
+            # Add the column with default value
+            conn.execute(text("ALTER TABLE features ADD COLUMN in_progress BOOLEAN DEFAULT 0"))
+            conn.commit()
+
+
 def create_database(project_dir: Path) -> tuple:
     """
     Create database and return engine + session maker.
@@ -69,6 +86,10 @@ def create_database(project_dir: Path) -> tuple:
     db_url = get_database_url(project_dir)
     engine = create_engine(db_url, connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=engine)
+
+    # Migrate existing databases to add in_progress column
+    _migrate_add_in_progress_column(engine)
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return engine, SessionLocal
 

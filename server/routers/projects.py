@@ -73,7 +73,7 @@ def validate_project_name(name: str) -> str:
 def get_project_stats(project_dir: Path) -> ProjectStats:
     """Get statistics for a project."""
     _init_imports()
-    passing, total = _count_passing_tests(project_dir)
+    passing, _, total = _count_passing_tests(project_dir)
     percentage = (passing / total * 100) if total > 0 else 0.0
     return ProjectStats(passing=passing, total=total, percentage=round(percentage, 1))
 
