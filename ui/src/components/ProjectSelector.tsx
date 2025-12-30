@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, Plus, FolderOpen, Loader2 } from 'lucide-react'
-import { useCreateProject } from '../hooks/useProjects'
 import type { ProjectSummary } from '../lib/types'
+import { NewProjectModal } from './NewProjectModal'
 
 interface ProjectSelectorProps {
   projects: ProjectSummary[]
@@ -17,27 +17,11 @@ export function ProjectSelector({
   isLoading,
 }: ProjectSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [showCreate, setShowCreate] = useState(false)
-  const [newProjectName, setNewProjectName] = useState('')
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
 
-  const createProject = useCreateProject()
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newProjectName.trim()) return
-
-    try {
-      const project = await createProject.mutateAsync({
-        name: newProjectName.trim(),
-        specMethod: 'manual',
-      })
-      onSelectProject(project.name)
-      setNewProjectName('')
-      setShowCreate(false)
-      setIsOpen(false)
-    } catch (error) {
-      console.error('Failed to create project:', error)
-    }
+  const handleProjectCreated = (projectName: string) => {
+    onSelectProject(projectName)
+    setIsOpen(false)
   }
 
   const selectedProjectData = projects.find(p => p.name === selectedProject)
@@ -120,53 +104,26 @@ export function ProjectSelector({
             <div className="border-t-3 border-[var(--color-neo-border)]" />
 
             {/* Create New */}
-            {showCreate ? (
-              <form onSubmit={handleCreateProject} className="p-3">
-                <input
-                  type="text"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="project-name"
-                  className="neo-input text-sm mb-2"
-                  pattern="^[a-zA-Z0-9_-]+$"
-                  autoFocus
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="neo-btn neo-btn-success text-xs flex-1"
-                    disabled={createProject.isPending || !newProjectName.trim()}
-                  >
-                    {createProject.isPending ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      'Create'
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreate(false)
-                      setNewProjectName('')
-                    }}
-                    className="neo-btn neo-btn-ghost text-xs"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <button
-                onClick={() => setShowCreate(true)}
-                className="w-full neo-dropdown-item flex items-center gap-2 font-bold"
-              >
-                <Plus size={16} />
-                New Project
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setShowNewProjectModal(true)
+                setIsOpen(false)
+              }}
+              className="w-full neo-dropdown-item flex items-center gap-2 font-bold"
+            >
+              <Plus size={16} />
+              New Project
+            </button>
           </div>
         </>
       )}
+
+      {/* New Project Modal */}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   )
 }

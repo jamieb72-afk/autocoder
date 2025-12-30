@@ -110,3 +110,77 @@ export type WSMessage =
   | WSLogMessage
   | WSAgentStatusMessage
   | WSPongMessage
+
+// ============================================================================
+// Spec Chat Types
+// ============================================================================
+
+export interface SpecQuestionOption {
+  label: string
+  description: string
+}
+
+export interface SpecQuestion {
+  question: string
+  header: string
+  options: SpecQuestionOption[]
+  multiSelect: boolean
+}
+
+export interface SpecChatTextMessage {
+  type: 'text'
+  content: string
+}
+
+export interface SpecChatQuestionMessage {
+  type: 'question'
+  questions: SpecQuestion[]
+  tool_id?: string
+}
+
+export interface SpecChatCompleteMessage {
+  type: 'spec_complete'
+  path: string
+}
+
+export interface SpecChatFileWrittenMessage {
+  type: 'file_written'
+  path: string
+}
+
+export interface SpecChatSessionCompleteMessage {
+  type: 'complete'
+}
+
+export interface SpecChatErrorMessage {
+  type: 'error'
+  content: string
+}
+
+export interface SpecChatPongMessage {
+  type: 'pong'
+}
+
+export interface SpecChatResponseDoneMessage {
+  type: 'response_done'
+}
+
+export type SpecChatServerMessage =
+  | SpecChatTextMessage
+  | SpecChatQuestionMessage
+  | SpecChatCompleteMessage
+  | SpecChatFileWrittenMessage
+  | SpecChatSessionCompleteMessage
+  | SpecChatErrorMessage
+  | SpecChatPongMessage
+  | SpecChatResponseDoneMessage
+
+// UI chat message for display
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: Date
+  questions?: SpecQuestion[]
+  isStreaming?: boolean
+}

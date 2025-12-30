@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .routers import projects_router, features_router, agent_router
+from .routers import projects_router, features_router, agent_router, spec_creation_router
 from .websocket import project_websocket
 from .services.process_manager import cleanup_all_managers
 from .schemas import SetupStatus
@@ -81,6 +81,7 @@ async def require_localhost(request: Request, call_next):
 app.include_router(projects_router)
 app.include_router(features_router)
 app.include_router(agent_router)
+app.include_router(spec_creation_router)
 
 
 # ============================================================================
