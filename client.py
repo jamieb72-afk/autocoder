@@ -15,6 +15,7 @@ from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from claude_agent_sdk.types import HookMatcher
 
 from security import bash_security_hook
+from gemini_client import GeminiClient
 
 
 # Feature MCP tools for feature/test management
@@ -76,25 +77,20 @@ BUILTIN_TOOLS = [
 
 def create_client(project_dir: Path, model: str, yolo_mode: bool = False):
     """
-    Create a Claude Agent SDK client with multi-layered security.
+    Create a Claude Agent SDK client or Gemini client.
 
     Args:
         project_dir: Directory for the project
-        model: Claude model to use
+        model: Model to use (claude-* or gemini-*)
         yolo_mode: If True, skip Playwright MCP server for rapid prototyping
 
     Returns:
-        Configured ClaudeSDKClient (from claude_agent_sdk)
-
-    Security layers (defense in depth):
-    1. Sandbox - OS-level bash command isolation prevents filesystem escape
-    2. Permissions - File operations restricted to project_dir only
-    3. Security hooks - Bash commands validated against an allowlist
-       (see security.py for ALLOWED_COMMANDS)
-
-    Note: Authentication is handled by start.bat/start.sh before this runs.
-    The Claude SDK auto-detects credentials from ~/.claude/.credentials.json
+        Configured Client (ClaudeSDKClient or GeminiClient)
     """
+    if model.lower().startswith("gemini"):
+        print(f"Creating Gemini Client for model: {model}")
+        return GeminiClient(project_dir, model, yolo_mode)
+
     # Build allowed tools list based on mode
     # In YOLO mode, exclude Playwright tools for faster prototyping
     allowed_tools = [*BUILTIN_TOOLS, *FEATURE_MCP_TOOLS]

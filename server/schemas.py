@@ -103,6 +103,7 @@ class FeatureListResponse(BaseModel):
 class AgentStartRequest(BaseModel):
     """Request schema for starting the agent."""
     yolo_mode: bool = False
+    model: str = 'claude-3-opus-20240229'
 
 
 class AgentStatus(BaseModel):
@@ -111,6 +112,7 @@ class AgentStatus(BaseModel):
     pid: int | None = None
     started_at: datetime | None = None
     yolo_mode: bool = False
+    model: str | None = None
 
 
 class AgentActionResponse(BaseModel):

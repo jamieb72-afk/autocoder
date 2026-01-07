@@ -36,9 +36,6 @@ from agent import run_autonomous_agent
 from registry import get_project_path
 
 
-# Configuration
-# DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
-DEFAULT_MODEL = "claude-opus-4-5-20251101"
 
 
 def parse_args() -> argparse.Namespace:
@@ -86,8 +83,7 @@ Authentication:
     parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_MODEL,
-        help=f"Claude model to use (default: {DEFAULT_MODEL})",
+        help=f"Claude model to use",
     )
 
     parser.add_argument(

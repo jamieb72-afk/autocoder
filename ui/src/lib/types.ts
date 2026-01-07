@@ -90,6 +90,7 @@ export interface AgentStatusResponse {
   pid: number | null
   started_at: string | null
   yolo_mode: boolean
+  model: string | null
 }
 
 export interface AgentActionResponse {

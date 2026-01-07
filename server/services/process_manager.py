@@ -75,6 +75,7 @@ class AgentProcessManager:
         self.started_at: datetime | None = None
         self._output_task: asyncio.Task | None = None
         self.yolo_mode: bool = False  # YOLO mode for rapid prototyping
+        self.model: str | None = None
 
         # Support multiple callbacks (for multiple WebSocket clients)
         self._output_callbacks: Set[Callable[[str], Awaitable[None]]] = set()
@@ -215,12 +216,13 @@ class AgentProcessManager:
                     self.status = "stopped"
                 self._remove_lock()
 
-    async def start(self, yolo_mode: bool = False) -> tuple[bool, str]:
+    async def start(self, yolo_mode: bool = False, model: str = 'claude-3-opus-20240229') -> tuple[bool, str]:
         """
         Start the agent as a subprocess.
 
         Args:
             yolo_mode: If True, run in YOLO mode (no browser testing)
+            model: The model to use for the agent
 
         Returns:
             Tuple of (success, message)
@@ -231,8 +233,9 @@ class AgentProcessManager:
         if not self._check_lock():
             return False, "Another agent instance is already running for this project"
 
-        # Store YOLO mode for status queries
+        # Store YOLO mode and model for status queries
         self.yolo_mode = yolo_mode
+        self.model = model
 
         # Build command - pass absolute path to project directory
         cmd = [
@@ -240,6 +243,8 @@ class AgentProcessManager:
             str(self.root_dir / "autonomous_agent_demo.py"),
             "--project-dir",
             str(self.project_dir.resolve()),
+            "--model",
+            model,
         ]
 
         # Add --yolo flag if YOLO mode is enabled
@@ -307,6 +312,7 @@ class AgentProcessManager:
             self.process = None
             self.started_at = None
             self.yolo_mode = False  # Reset YOLO mode
+            self.model = None
 
             return True, "Agent stopped"
         except Exception as e:
@@ -388,6 +394,7 @@ class AgentProcessManager:
             "pid": self.pid,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "yolo_mode": self.yolo_mode,
+            "model": self.model,
         }
 
 

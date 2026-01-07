@@ -64,12 +64,7 @@ async def get_agent_status(project_name: str):
     # Run healthcheck to detect crashed processes
     await manager.healthcheck()
 
-    return AgentStatus(
-        status=manager.status,
-        pid=manager.pid,
-        started_at=manager.started_at,
-        yolo_mode=manager.yolo_mode,
-    )
+    return AgentStatus(**manager.get_status_dict())
 
 
 @router.post("/start", response_model=AgentActionResponse)
@@ -80,7 +75,7 @@ async def start_agent(
     """Start the agent for a project."""
     manager = get_project_manager(project_name)
 
-    success, message = await manager.start(yolo_mode=request.yolo_mode)
+    success, message = await manager.start(yolo_mode=request.yolo_mode, model=request.model)
 
     return AgentActionResponse(
         success=success,

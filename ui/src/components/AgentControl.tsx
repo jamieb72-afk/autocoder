@@ -12,10 +12,12 @@ interface AgentControlProps {
   projectName: string
   status: AgentStatus
   yoloMode?: boolean  // From server status - whether currently running in YOLO mode
+  model?: string | null
 }
 
-export function AgentControl({ projectName, status, yoloMode = false }: AgentControlProps) {
+export function AgentControl({ projectName, status, yoloMode = false, model: currentModel }: AgentControlProps) {
   const [yoloEnabled, setYoloEnabled] = useState(false)
+  const [model, setModel] = useState('claude-3-opus-20240229')
 
   const startAgent = useStartAgent(projectName)
   const stopAgent = useStopAgent(projectName)
@@ -28,10 +30,23 @@ export function AgentControl({ projectName, status, yoloMode = false }: AgentCon
     pauseAgent.isPending ||
     resumeAgent.isPending
 
-  const handleStart = () => startAgent.mutate(yoloEnabled)
+  const handleStart = () => startAgent.mutate({ yoloMode: yoloEnabled, model })
   const handleStop = () => stopAgent.mutate()
   const handlePause = () => pauseAgent.mutate()
   const handleResume = () => resumeAgent.mutate()
+
+  const models = [
+    'claude-3-opus-20240229',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307',
+    'gpt-4-turbo-preview',
+    'gpt-3.5-turbo',
+    'gemini-1.5-pro',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro-latest',
+  ]
+
+  const isStopped = status === 'stopped' || status === 'crashed'
 
   return (
     <div className="flex items-center gap-2">
@@ -48,10 +63,32 @@ export function AgentControl({ projectName, status, yoloMode = false }: AgentCon
         </div>
       )}
 
+      {/* Model Indicator - shown when running in YOLO mode */}
+      {(status === 'running' || status === 'paused') && currentModel && (
+        <div className="flex items-center gap-1 px-2 py-1 bg-gray-200 border-3 border-[var(--color-neo-border)]">
+          <span className="font-display font-bold text-xs uppercase text-gray-800">
+            {currentModel}
+          </span>
+        </div>
+      )}
+
       {/* Control Buttons */}
       <div className="flex gap-1">
-        {status === 'stopped' || status === 'crashed' ? (
+        {isStopped ? (
           <>
+            {/* Model Selector */}
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={!isStopped}
+              className="neo-select text-sm"
+            >
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
             {/* YOLO Toggle - only shown when stopped */}
             <button
               onClick={() => setYoloEnabled(!yoloEnabled)}
